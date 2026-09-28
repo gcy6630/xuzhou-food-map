@@ -718,7 +718,10 @@ const items = [{"idx":1,"name":"胡姐烧烤(庆云桥店)","cat":"烧烤","tier
 const colors = {"烧烤":"#e74c3c","米线":"#16a085","把子肉":"#a0522d","早餐·汤饼":"#f39c12","馍·面食":"#7f8c8d","卤味·熟食":"#d35400","本地菜":"#2980b9","夜市":"#8e44ad"};
 const cats = ["烧烤","米线","把子肉","早餐·汤饼","馍·面食","卤味·熟食","本地菜","夜市"];
 
-const map = L.map('map', {zoomControl:true, attributionControl:false}).setView([34.75, 117.5], 8);
+// 初始中心直接从数据算，绝不写死城市坐标（写死过一次→打开停在上一个城市，被用户骂）
+const _la = items.map((i) => i.lat), _lo = items.map((i) => i.lng);
+const _c = items.length ? [(Math.min(..._la) + Math.max(..._la)) / 2, (Math.min(..._lo) + Math.max(..._lo)) / 2] : [34.5, 118.0];
+const map = L.map('map', {zoomControl:true, attributionControl:false}).setView(_c, 9);
 L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {subdomains:['1','2','3','4'], maxZoom:18}).addTo(map);
 
 const layers = {};
@@ -798,6 +801,16 @@ function renderCards(){
         map.setView(m.getLatLng(), 16, {animate:true});
         m.openPopup();
         sheet.classList.remove('open');
+        // 弹窗的 autoPan 会把标记顶出屏幕（底部被把手挡住），所以收尾再校一次，
+        // 保证标记落在「顶部标题栏 ~ 底部把手」之间的安全区里
+        setTimeout(function(){
+          const pt = map.latLngToContainerPoint(m.getLatLng());
+          const sz = map.getSize();
+          const safeTop = 96, safeBottom = sz.y - 150;
+          if(pt.y < safeTop || pt.y > safeBottom){
+            map.panBy([0, pt.y - (safeTop + safeBottom) / 2], {animate:true});
+          }
+        }, 340);
       };
       box.appendChild(d);
     });
